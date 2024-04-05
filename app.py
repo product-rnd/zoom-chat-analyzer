@@ -35,8 +35,8 @@ def main():
     uploaded_files = st.sidebar.file_uploader("Choose files", type=['txt'], accept_multiple_files=True)
 
     # Course name and day input
-    course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "EDA")
-    day = st.sidebar.text_input("✨ Day", "Day 4")
+    course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "BATCH - COURSE NAME")
+    day = st.sidebar.text_input("✨ Day", "Day-N")
 
     if uploaded_files:
         combined_data = pd.concat([extract_participants_and_messages(file.readlines()) for file in uploaded_files])
