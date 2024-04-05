@@ -98,7 +98,7 @@ def main():
             )
     # Footer
     st.markdown("""
-    © 2024 Algoritma | [Github](https://github.com/finesaaa)
+    © 2024 Algoritma | [Github](https://github.com/finesaaa/zoom-chat-analyzer)
     """)
 
 if __name__ == "__main__":
