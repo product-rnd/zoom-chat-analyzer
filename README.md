@@ -63,7 +63,8 @@ To run this app locally, make sure you have Python installed. Then, follow these
 
 ## Example Chat Data
 
-You can use the provided example chat data file (`example_chat.txt`) to test the application.
+You can use the provided example chat data file (`GMT20240816.txt`) to test the application.
+⚠️ Ensure that the file names follow the format "GMT+DATE.txt" where "DATE" represents the date in any specific format.
 
 ```
 00:24:39    [Instructor] Alexander Graham Bell:   sore Bu
