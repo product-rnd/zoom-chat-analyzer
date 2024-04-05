@@ -64,7 +64,7 @@ def main():
         st.header("📃 Summary Page")
 
         # Course name and day input
-        course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "BATCH - COURSE NAME")
+        course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "Batch - Course Name")
         day = st.sidebar.text_input("✨ Day", "Overall Day")
 
         # Upload files
