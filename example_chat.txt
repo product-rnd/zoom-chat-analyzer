@@ -1,0 +1,12 @@
+00:24:39    [Instructor] Alexander Graham Bell:   sore Bu
+00:33:28    [TA] Marie Curie:    Iya sama sama Bu
+01:25:50    [TA] Leonardo da Vinci:    Selamat datang di kelas EDA Day 4, Yoda Night Online. Berikut pranala kelas yang perlu dipersiapkan:...
+01:37:36    [TA] Albert Einstein:  😀
+01:37:52    J. Robert Oppenheimer Zoom (Laptop):   Reacted to "😀" with 🤣
+01:46:25    Issac Newton:    household_new[(household_new['year'] == 2018)]
+01:46:47    [TA] J. Robert Oppenheimer:  Reacted to "household_new[(household..." with 👏
+01:48:34    B. J. Habibie:    karena data household_new yang originalnya akan keoverwrite
+01:48:40    Issac Newton:    data awalnya berubah
+02:00:25    J. Robert Oppenheimer Zoom (Laptop):   minimarket total sales nya sangat mendominasi dibandingkan format penjualan yg lain
+02:02:05    Roberto Mario Uta:   Reacted to "kalau gak makan nasi..." with 😂
+02:02:05    Arthur Scherbius:   Reacted to "kalau gak makan nasi..." with 🤣
