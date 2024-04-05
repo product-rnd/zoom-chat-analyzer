@@ -159,8 +159,8 @@ def main():
                     participant_summary["Attendance"] = "hadir"
                     participant_summary.loc[participant_summary["Message Count"] == 0, "Attendance"] = "tidak hadir"
                     participant_summary["Activity Level"] = "pasif"
-                    participant_summary.loc[participant_summary["Message Count"] > 10, "Activity Level"] = "aktif"
-                    participant_summary.loc[(participant_summary["Message Count"] >= 3) & (participant_summary["Message Count"] <= 10), "Activity Level"] = "kurang aktif"
+                    participant_summary.loc[participant_summary["Message Count"] >= 9, "Activity Level"] = "aktif"
+                    participant_summary.loc[(participant_summary["Message Count"] >= 3) & (participant_summary["Message Count"] < 9), "Activity Level"] = "kurang aktif"
 
                     # Combine attendance and activity level information
                     participant_summary["Summary"] = participant_summary["Attendance"] + ", " + participant_summary["Activity Level"]
