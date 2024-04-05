@@ -82,9 +82,5 @@ You can use the provided example chat data file (`example_chat.txt`) to test the
 
 ## Credits
 
-- Developed by [Your Name]
+- Developed by RnD Product Team - Algoritma
 - © 2024 Algoritma
-
----
-
-Feel free to customize this README template according to your preferences and add any additional information you find relevant.
