@@ -36,7 +36,7 @@ def main():
 
     # Course name and day input
     course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "BATCH - COURSE NAME")
-    day = st.sidebar.text_input("✨ Day", "Day-N")
+    day = st.sidebar.text_input("✨ Day", "Overall Day")
 
     if uploaded_files:
         combined_data = pd.concat([extract_participants_and_messages(file.readlines()) for file in uploaded_files])
