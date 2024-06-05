@@ -159,8 +159,10 @@ def main():
             if state.participant_data is None:
                 # Initialize an empty list to store participant data
                 participant_data = []
+
+                sorted_files = sorted(uploaded_files, key=lambda x: extract_date_from_filename(x.name))
             
-                for file_index, file in enumerate(uploaded_files, start=1):
+                for file_index, file in enumerate(sorted_files, start=1):
                     # Use file name for meeting name
                     meeting_date = extract_date_from_filename(file.name)
                     # Convert the meeting date string to a datetime object
