@@ -47,7 +47,7 @@ def extract_date_from_filename(filename):
         return "Unknown Date"
 
 def main():
-    st.title("💭 Zoom Chat Analyzer")
+    st.title("💭 Zoom Chat Analyzer - Algoritma Product")
     st.write("""
     📊 This app analyzes chat data and provides insights into the most active and silent participants.
     """)
@@ -134,18 +134,15 @@ def main():
             st.subheader("Chat Data Summary")
             st.write(combined_data)
 
-            # Copy to clipboard button
-            if st.button("Copy Data to Clipboard"):
-                csv_data = combined_data.to_csv(index=False)
-                st.write("Data copied to clipboard!")
-                st.write(csv_data)
-                df_bytes = io.BytesIO(csv_data.encode())
-                st.download_button(
-                    label="Download CSV",
-                    data=df_bytes,
-                    file_name="chat_data.csv",
-                    mime="text/csv"
-                )
+            # Download CSV button
+            csv_data = combined_data.to_csv(index=False)
+            df_bytes = io.BytesIO(csv_data.encode())
+            st.download_button(
+                label="Download Summary CSV",
+                data=df_bytes,
+                file_name="participant_notes.csv",
+                mime="text/csv"
+            )
 
     elif page == "Individual Analytics":
         state.page = "Individual Analytics"
