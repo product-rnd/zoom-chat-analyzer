@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import io
 import pyperclip
+from datetime import datetime
 import re
 
 class SessionState:
@@ -78,10 +79,25 @@ def main():
             # Extract participants and messages
             jumlah_pesan = combined_data.groupby("Participant").size().reset_index(name="Jumlah Pesan")
 
+            # Split messages into reactions and regular messages
+            combined_data['Is Reaction'] = combined_data['Message'].str.startswith('Reacted')
+            reaction_count = combined_data[combined_data['Is Reaction']].groupby('Participant').size().reset_index(name='Reaction Count')
+            chat_count = combined_data[~combined_data['Is Reaction']].groupby('Participant').size().reset_index(name='Chat Count')
+
+            # Merge reaction and chat counts
+            participant_data = pd.merge(jumlah_pesan, reaction_count, on='Participant', how='left').fillna(0)
+            participant_data = pd.merge(participant_data, chat_count, on='Participant', how='left').fillna(0)
+            participant_data['Reaction Count'] = participant_data['Reaction Count'].astype(int)
+            participant_data['Chat Count'] = participant_data['Chat Count'].astype(int)
+
+            st.subheader("Participant Activity Sorted by Number of Messages")
+            sorted_participant_data = participant_data.sort_values("Jumlah Pesan", ascending=False).reset_index(drop=True)
+            st.write(sorted_participant_data)
+
             # Most active participants plot
             st.subheader("Top 10 Most Active Participants")
             fig, ax = plt.subplots(figsize=(10, 6))
-            orang_paling_aktif = jumlah_pesan.sort_values("Jumlah Pesan", ascending=False).head(10)
+            orang_paling_aktif = participant_data.sort_values("Jumlah Pesan", ascending=False).head(10)
             orang_paling_aktif = orang_paling_aktif.sort_values("Jumlah Pesan", ascending=True).reset_index(drop=True)  # Reset index
             bars = ax.barh(orang_paling_aktif["Participant"], orang_paling_aktif["Jumlah Pesan"])
             ax.set_xlabel("Number of Messages")
@@ -99,7 +115,7 @@ def main():
             # Most silent participants plot
             st.subheader("Top 10 Most Silent Participants")
             fig2, ax2 = plt.subplots(figsize=(10, 6))
-            orang_paling_diam = jumlah_pesan.sort_values("Jumlah Pesan", ascending=True).head(10)
+            orang_paling_diam = participant_data.sort_values("Jumlah Pesan", ascending=True).head(10)
             orang_paling_diam = orang_paling_diam.sort_values("Jumlah Pesan", ascending=False).reset_index(drop=True)  # Reset index
             bars2 = ax2.barh(orang_paling_diam["Participant"], orang_paling_diam["Jumlah Pesan"], color='orange')
             ax2.set_xlabel("Number of Messages")
@@ -130,64 +146,156 @@ def main():
                     file_name="chat_data.csv",
                     mime="text/csv"
                 )
+
     elif page == "Individual Analytics":
         state.page = "Individual Analytics"
 
         st.markdown("---")
-        st.header("🫂Individual Analytics Page")
+        st.header("🫂 Individual Analytics Page")
         # Upload files
         st.sidebar.header("🗃️ Upload Chat Files")
         st.sidebar.write("You can upload multiple files (e.g., Zoom Chat from Day 1 to Day 4)")
         uploaded_files = st.sidebar.file_uploader("Choose files", type=['txt'], accept_multiple_files=True)
+        meeting_dates = {}
 
         if uploaded_files:
             if state.participant_data is None:
-                # Initialize an empty dictionary to store data for each participant
-                participant_data = {}
-
-                for file in uploaded_files:
+                # Initialize an empty list to store participant data
+                participant_data = []
+            
+                for file_index, file in enumerate(uploaded_files, start=1):
                     # Use file name for meeting name
                     meeting_date = extract_date_from_filename(file.name)
+                    # Convert the meeting date string to a datetime object
+                    meeting_date = datetime.strptime(meeting_date, "%Y%m%d")
+                    # Format the meeting date as desired
+                    formatted_date = meeting_date.strftime("%A, %d %B %Y")
+                    meeting_dates[f"Day {file_index}"] = formatted_date
+
+                    day = f"Day {file_index}"
 
                     # Extract chat data
                     chat_data = extract_participants_and_messages(file.readlines())
 
                     # Group participants by name and count messages
-                    participant_summary = chat_data.groupby("Participant").size().reset_index(name="Message Count")
+                    jumlah_pesan = chat_data.groupby("Participant").size().reset_index(name="Message Count")
+
+                    # Split messages into reactions and regular messages
+                    chat_data['Is Reaction'] = chat_data['Message'].str.startswith('Reacted')
+                    reaction_count = chat_data[chat_data['Is Reaction']].groupby('Participant').size().reset_index(name='Reaction Count')
+                    chat_count = chat_data[~chat_data['Is Reaction']].groupby('Participant').size().reset_index(name='Chat Count')
+
+                    # Merge reaction and chat counts
+                    participant_data_day = pd.merge(jumlah_pesan, reaction_count, on='Participant', how='left').fillna(0)
+                    participant_data_day = pd.merge(participant_data_day, chat_count, on='Participant', how='left').fillna(0)
+                    
+                    participant_data_day['Reaction Count'] = participant_data_day['Reaction Count'].astype(int)
+                    participant_data_day['Chat Count'] = participant_data_day['Chat Count'].astype(int)
+
+                    mean_reaction_count = participant_data_day["Reaction Count"].mean()
+                    mean_message_count = participant_data_day["Chat Count"].mean()
 
                     # Determine attendance and activity level for each participant
-                    participant_summary["Attendance"] = "hadir"
-                    participant_summary.loc[participant_summary["Message Count"] == 0, "Attendance"] = "tidak hadir"
-                    participant_summary["Activity Level"] = "pasif"
-                    participant_summary.loc[participant_summary["Message Count"] >= 9, "Activity Level"] = "aktif"
-                    participant_summary.loc[(participant_summary["Message Count"] >= 3) & (participant_summary["Message Count"] < 9), "Activity Level"] = "kurang aktif"
+                    participant_data_day["Attendance"] = "1"
+                    participant_data_day.loc[participant_data_day["Message Count"] == 0, "Attendance"] = "0"
+                    participant_data_day["Activity Level"] = "pasif"
+                    
+                    participant_data_day.loc[participant_data_day["Message Count"] >= mean_message_count, "Activity Level"] = "sangat aktif"
+                    participant_data_day.loc[(participant_data_day["Message Count"] >= 3) & (participant_data_day["Message Count"] < mean_message_count), "Activity Level"] = "kurang aktif"
 
-                    # Combine attendance and activity level information
-                    participant_summary["Summary"] = participant_summary["Attendance"] + ", " + participant_summary["Activity Level"]
+                    # Add day information
+                    participant_data_day["Day"] = day
 
-                    # Add data for each participant to the dictionary
-                    for _, row in participant_summary.iterrows():
-                        participant_name = row["Participant"]
-                        summary = f"{meeting_date}: {row['Summary']}"
+                    # Append participant data to the list
+                    participant_data.append(participant_data_day)
 
-                        if participant_name in participant_data:
-                            participant_data[participant_name].append(summary)
+            # Concatenate participant data for all days
+            participant_data_combined = pd.concat(participant_data)
+
+            # Iterate over unique dates
+            for key, value in meeting_dates.items():
+                st.write(f"{key}: {value}")
+
+             # Get the unique participants
+            participants = participant_data_combined["Participant"].unique()
+
+            # Create a dictionary to store participant attendance
+            participant_attendance = {participant: [] for participant in participants}
+
+            # Loop through each participant to determine attendance for each day
+            for participant in participants:
+                for day in range(1, len(uploaded_files) + 1):
+                    day_str = f"Day {day}"
+                    if day_str in participant_data_combined.loc[participant_data_combined["Participant"] == participant, "Day"].values:
+                        participant_attendance[participant].append("✅")
+                    else:
+                        participant_attendance[participant].append("❌")
+
+            # Create participant notes based on message count, reaction count, and attendance criteria
+            notes = []
+            for participant, participant_data in participant_data_combined.groupby("Participant"):
+                attendance_notes = []
+                activity_notes = []
+
+                for index, (day, attendance) in enumerate(zip(participant_data["Day"], participant_attendance[participant])):
+                    # Check attendance
+                    attendance_notes.append(f"{day}: {attendance}")
+
+                    # Check message count criteria
+                    if attendance == "✅":
+                        if participant_data["Message Count"].iloc[index] >= mean_message_count:
+                            activity_notes.append(f"{day}: cukup aktif ({participant_data['Message Count'].iloc[index]})")
+                        elif 3 <= participant_data["Message Count"].iloc[index] < mean_message_count:
+                            activity_notes.append(f"{day}: kurang aktif ({participant_data['Message Count'].iloc[index]})")
                         else:
-                            participant_data[participant_name] = [summary]
+                            activity_notes.append(f"{day}: pasif ({participant_data['Message Count'].iloc[index]})")
+                    else:
+                        activity_notes.append(f"{day}: tidak hadir")
 
-                state.participant_data = participant_data
+                    # Check reaction count criteria
+                    if participant_data["Reaction Count"].iloc[index] >= mean_reaction_count:
+                        responsiveness = "tidak responsif"
+                    else:
+                        responsiveness = "responsif, selalu react jika konfirmasi"
 
-            # Display participant data
-            for participant, data in state.participant_data.items():
-                st.subheader(participant)
-                st.write("\n\n".join(data))
+                    # Determine overall activity level
+                    if attendance == "✅":
+                        activity_notes[-1] += f" & {responsiveness}"
+                    else:
+                        activity_notes[-1] += " & tidak responsif"
 
-            # Copy data to clipboard button
-            if st.button("Copy Summary to Clipboard"):
-                formatted_summary = "\n\n".join(["{}:\n\n{}".format(participant, "\n\n".join(data)) for participant, data in participant_data.items()])
-                pyperclip.copy(formatted_summary)
-                # Inform user
-                st.write("Data copied to clipboard!")
+                    if (index != len(participant_data["Day"]) - 1):
+                        activity_notes.append("\n-")
+
+                # Combine attendance and activity notes
+                attendance_notes_str = " | ".join(attendance_notes)
+                activity_notes_str = " ".join(activity_notes)
+
+                # Overall notes for the participant
+                overall_notes = f"Kehadiran\n{attendance_notes_str}\n\nNotes Overall: \n- {activity_notes_str}"
+
+                notes.append({
+                    "Name": participant,
+                    "Notes": overall_notes
+                })
+
+            # Create DataFrame for participant notes
+            notes_df = pd.DataFrame(notes)
+
+            # Display participant notes in a table format
+            st.subheader("Participant Notes")
+            st.write(notes_df)
+
+            # Download CSV button
+            csv_data = notes_df.to_csv(index=False)
+            df_bytes = io.BytesIO(csv_data.encode())
+            st.download_button(
+                label="Download Summary CSV",
+                data=df_bytes,
+                file_name="participant_notes.csv",
+                mime="text/csv"
+            )
+
 
     # Footer
     st.markdown("""
