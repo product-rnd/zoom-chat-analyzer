@@ -40,14 +40,15 @@ def extract_date_from_filename(filename):
     Returns:
         str: The extracted date.
     """
-    date_match = re.search(r"GMT(\d+)-", filename)
+    # with format min. `GMTYYYYMMDD.txt``
+    date_match = re.search(r"GMT(\d{8})", filename) 
     if date_match:
         return date_match.group(1)
     else:
         return "Unknown Date"
 
 def main():
-    st.title("💭 Zoom Chat Analyzer - Algoritma Product")
+    st.title("💭 Zoom Chat Analyzer - Algoritma")
     st.write("""
     📊 This app analyzes chat data and provides insights into the most active and silent participants.
     """)
@@ -215,20 +216,30 @@ def main():
             for key, value in meeting_dates.items():
                 st.write(f"{key}: {value}")
 
-             # Get the unique participants
-            participants = participant_data_combined["Participant"].unique()
+            # Define mean_message_count and mean_reaction_count for criteria
+            mean_message_count = participant_data_combined["Message Count"].median()
+            mean_reaction_count = participant_data_combined["Reaction Count"].median()
 
-            # Create a dictionary to store participant attendance
-            participant_attendance = {participant: [] for participant in participants}
+            # Convert meeting_dates to a list of dates in order
+            dates = list(meeting_dates.keys())
+
+            # Initialize participant attendance dictionary with all participants starting from Day 1
+            participants = set(participant_data_combined["Participant"])
+            participant_attendance = {participant: ["❌"] * len(dates) for participant in participants}
 
             # Loop through each participant to determine attendance for each day
             for participant in participants:
-                for day in range(1, len(uploaded_files) + 1):
-                    day_str = f"Day {day}"
-                    if day_str in participant_data_combined.loc[participant_data_combined["Participant"] == participant, "Day"].values:
-                        participant_attendance[participant].append("✅")
-                    else:
-                        participant_attendance[participant].append("❌")
+                for date in dates:
+                    if date in participant_data_combined.loc[participant_data_combined["Participant"] == participant, "Day"].values:
+                        day_index = dates.index(date)
+                        participant_attendance[participant][day_index] = "✅"
+
+            # Update the participant list if a new participant appears in later dates
+            for date in dates:
+                new_participants = participant_data_combined.loc[participant_data_combined["Day"] == date, "Participant"].unique()
+                for new_participant in new_participants:
+                    if new_participant not in participant_attendance:
+                        participant_attendance[new_participant] = ["❌"] * dates.index(date) + ["✅"] + ["❌"] * (len(meeting_dates) - meeting_dates.index(date) - 1)
 
             # Create participant notes based on message count, reaction count, and attendance criteria
             notes = []
@@ -236,34 +247,34 @@ def main():
                 attendance_notes = []
                 activity_notes = []
 
-                for index, (day, attendance) in enumerate(zip(participant_data["Day"], participant_attendance[participant])):
+                for date, attendance in zip(dates, participant_attendance[participant]):
                     # Check attendance
-                    attendance_notes.append(f"{day}: {attendance}")
+                    attendance_notes.append(f"{date}: {attendance}")
 
                     # Check message count criteria
-                    if attendance == "✅":
-                        if participant_data["Message Count"].iloc[index] >= mean_message_count:
-                            activity_notes.append(f"{day}: cukup aktif ({participant_data['Message Count'].iloc[index]})")
-                        elif 3 <= participant_data["Message Count"].iloc[index] < mean_message_count:
-                            activity_notes.append(f"{day}: kurang aktif ({participant_data['Message Count'].iloc[index]})")
+                    day_data = participant_data[participant_data["Day"] == date]
+                    if not day_data.empty:
+                        message_count = day_data["Message Count"].values[0]
+                        reaction_count = day_data["Reaction Count"].values[0]
+
+                        if message_count >= mean_message_count:
+                            activity_notes.append(f"{date}: sangat aktif ({message_count})")
+                        elif 3 <= message_count < mean_message_count:
+                            activity_notes.append(f"{date}: kurang aktif ({message_count})")
                         else:
-                            activity_notes.append(f"{day}: pasif ({participant_data['Message Count'].iloc[index]})")
-                    else:
-                        activity_notes.append(f"{day}: tidak hadir")
+                            activity_notes.append(f"{date}: pasif ({message_count})")
 
-                    # Check reaction count criteria
-                    if participant_data["Reaction Count"].iloc[index] >= mean_reaction_count:
-                        responsiveness = "tidak responsif"
-                    else:
-                        responsiveness = "responsif, selalu react jika konfirmasi"
+                        # Check reaction count criteria
+                        if reaction_count >= mean_reaction_count:
+                            responsiveness = "tidak responsif"
+                        else:
+                            responsiveness = "responsif, selalu react jika konfirmasi"
 
-                    # Determine overall activity level
-                    if attendance == "✅":
                         activity_notes[-1] += f" & {responsiveness}"
                     else:
-                        activity_notes[-1] += " & tidak responsif"
+                        activity_notes.append(f"{date}: tidak hadir & tidak responsif")
 
-                    if (index != len(participant_data["Day"]) - 1):
+                    if date != dates[-1]:
                         activity_notes.append("\n-")
 
                 # Combine attendance and activity notes
@@ -295,6 +306,11 @@ def main():
                 mime="text/csv"
             )
 
+            # Display participant notes in a table format
+            st.subheader("Detail Rules")
+            st.write("Students will be supposed to be active/responsive only if their `chat_count` >= the median of message count in each meeting, and their `reaction_count` >= the median of reaction count also.")
+            st.write("Mean Message Count: " + str(mean_message_count))
+            st.write("Mean Reaction Count: " + str(mean_reaction_count))
 
     # Footer
     st.markdown("""
