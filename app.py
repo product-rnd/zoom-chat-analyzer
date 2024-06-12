@@ -119,7 +119,7 @@ def main():
         course_name = st.sidebar.text_input("👩🏻‍🏫 Course Name", "Batch - Course Name")
         day = st.sidebar.text_input("✨ Day", "Overall Day")
 
-        # Upload files
+        # Upload chat files
         st.sidebar.header("🗃️ Upload Chat Files")
         st.sidebar.write("You can upload multiple files (e.g., Zoom Chat from Day 1 to Day 4)")
         uploaded_files = st.sidebar.file_uploader("Choose files", type=['txt'], accept_multiple_files=True)
@@ -271,7 +271,7 @@ def main():
 
                         activity_notes[-1] += f" & {responsiveness}"
                     else:
-                        activity_notes.append(f"{date}: tidak hadir")
+                        activity_notes.append(f"{date}: tidak hadir atau tidak chat/react sama sekali")
 
                     if date != dates[-1]:
                         activity_notes.append("\n-")
