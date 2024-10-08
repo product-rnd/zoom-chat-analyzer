@@ -92,14 +92,14 @@ def main():
 
             st.subheader("Participant Activity Sorted by Number of Messages")
             sorted_participant_data = participant_data_grouped.sort_values("Message Count", ascending=False).reset_index()
-            st.table(sorted_participant_data, use_container_width = True)
+            st.dataframe(sorted_participant_data, use_container_width = True)
 
             st.markdown("---")
             
             chats_data = pd.concat(chats_data)
             # Print DataFrames
             st.subheader("Chat Data Summary")
-            st.table(chats_data, use_container_width = True)
+            st.dataframe(chats_data, use_container_width = True)
 
             # Download CSV button
             csv_data = chats_data.to_csv(index=False)
@@ -157,7 +157,7 @@ def main():
 
             # Display participant notes in a table format
             st.subheader("Participant Notes")
-            st.table(participant_df, use_container_width = True)
+            st.dataframe(participant_df, use_container_width = True)
 
             # Iterate over unique dates
             st.write("📝 Note:")
@@ -183,7 +183,7 @@ def main():
 
             # Display participant notes in a table format
             st.subheader("Participant Notes")
-            st.table(participant_notes_df, use_container_width = True)
+            st.dataframe(participant_notes_df, use_container_width = True)
 
             # Iterate over unique dates
             for key, value in meeting_dates.items():
