@@ -37,13 +37,8 @@ def get_students_spreadsheet(sheet_name):
                                                      ranges=SHEET_RANGE).execute()
     values = sheet.get('valueRanges', [])
 
-    active = pd.DataFrame(values[0].get('values')).dropna(how="all")
-    if "DA" in SHEET_RANGE:
-        active.iloc[1, 1] = 'Name'
-    else:
-        active.iloc[1, 0] = 'Name'
-    active.columns = active.iloc[1].fillna('Name')
-    active = active.drop(index=[0,1]).iloc[:-5]
+    active = pd.DataFrame(values[0].get('values'))
+    active = active.dropna(how="all").rename(columns=active.iloc[0]).drop(index=0)
     
     return active
 
@@ -257,8 +252,10 @@ def process_attendance_notes(attendance, student_data, participant_notes_df):
 
         if name_check(nama_student, participant_notes_df['Name']) in participant_notes_df['Name'].tolist():
             overall_chat = participant_notes_df.loc[participant_notes_df['Name'] == name_check(nama_student, participant_notes_df['Name']), 'Notes'].values[0]
-        elif "✅" in overall_kehadiran:
-            overall_chat = "Notes: Hadir namun tidak pernah mengirimkan chat/memberikan reaction (pasif)"
+        elif ("✅" in overall_kehadiran) and ("❌" not in overall_kehadiran):
+            overall_chat = "Notes: Selalu hadir namun tidak pernah mengirimkan chat/memberikan reaction (pasif)"
+        elif ("✅" in overall_kehadiran) and ("❌" in overall_kehadiran):
+            overall_chat = f"Notes: Hadir {overall_kehadiran.count('✅')} hari namun tidak pernah mengirimkan chat/memberikan reaction (pasif)" 
         else:
             overall_chat = "Notes: Tidak hadir sama sekali"
 
