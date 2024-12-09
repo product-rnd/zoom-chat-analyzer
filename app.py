@@ -175,7 +175,7 @@ def main():
             participant_data_raw, combine, meeting_dates = process_uploaded_files(uploaded_files=uploaded_files)
             
             # Get student's name from Schedule Workshop
-            sheet_name = st.text_input("Input Students Sheet Name in [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc)", value=f"Zeus Student")
+            sheet_name = st.text_input("Input Students Sheet Name in [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc)", value=f"Apollo DA Student")
             student_data = get_students_spreadsheet(sheet_name)
 
             # Create Chat notes based on Zoom recording 
