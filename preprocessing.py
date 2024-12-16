@@ -11,6 +11,15 @@ class SessionState:
 
 @st.cache_data
 def get_students_spreadsheet(sheet_name):
+    """
+    Extracts participants list and attendance recap from [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc) spreadsheet.
+
+    Args:
+        sheet_name (str): Sheet name in the spreadsheet
+
+    Returns:
+        DataFrame: DataFrame containing all extracted values from the sheet.
+    """
     gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
                                                   authorized_user_info = st.secrets['authorized_user'])
 
@@ -60,6 +69,17 @@ def extract_date_from_filename(filename):
 
 @st.cache_data    
 def process_uploaded_files(uploaded_files):
+    """
+    Extracts activities of each participants from uploaded chat text files
+
+    Args:
+        uploaded_files (List of BytesIO files): Uploaded chat text files
+
+    Returns:
+        participant_data: DataFrame containing activity level for each participant
+        chats_data: List of combined chats
+        meeting_datesDataFrame: DataFrame containing meeting dates.
+    """
     # Initialize an empty list to store participant data
     participant_data = []
     meeting_dates = {}
@@ -111,26 +131,16 @@ def process_uploaded_files(uploaded_files):
     return participant_data, chats_data, meeting_dates
 
 
-def name_check(real_name, zoom_names):
-    '''
-    Returns Zoom name from a student's real name or Missing if the real name isn't found
-    '''
-    intersect = {}
-    for zoom_name in zoom_names:
-        zoom_name = re.sub('[^\w]', ' ', zoom_name)
-        real_set = set(real_name.lower().split())
-        zoom_set = set(zoom_name.lower().split())
-
-        if len(real_set.intersection(zoom_set)) > 0:
-            intersect[zoom_name] = len(real_set.intersection(zoom_set))
-        
-    if intersect != {}:
-        return max(intersect, key=intersect.get)
-    else:
-        return 'Missing'
-    
-
 def process_attendance_files(attendance_files):
+    '''
+    Combines and cleans uploaded zoom attendance files
+
+    Args:
+        attendance_files (List of BytesIO files): Uploaded zoom attendance files
+
+    Returns:
+        Dataframe of combined zoom attendance files
+    '''
 
     attendance_list = []
     for attendance_file in attendance_files:
@@ -152,6 +162,18 @@ def process_attendance_files(attendance_files):
 
 
 def process_chat_notes(participant_data_raw, meeting_dates):
+    '''
+    Calculates each participant's activity count
+
+    Args:
+        participant_data_raw (DataFrame): DataFrame containing activity level for each participant
+        meeting_dates (dict): Meeting dates of all chat text files
+
+    Returns:
+        participant_notes_df (DataFrame): DataFrame containing name and activity note of each participant
+        mean_chat_count_day (int): Average chat count
+        mean_reaction_count_day (int): Average reaction count
+    '''
     # Concatenate participant data for all days
     participant_data_df = pd.concat(participant_data_raw)
 
@@ -212,7 +234,46 @@ def process_chat_notes(participant_data_raw, meeting_dates):
 
     return participant_notes_df, mean_chat_count_day, mean_reaction_count_day
 
+
+def name_check(real_name, zoom_names):
+    '''
+    Returns Zoom name from a student's real name or Missing if the real name isn't found
+
+    Args:
+        real_name (string): Participant's real name
+        zoom_names (list of string): List of all participant zoom names to be compared
+
+    Returns:
+        Participant's zoom name or Missing (string) 
+    '''
+    intersect = {}
+    for zoom_name in zoom_names:
+        zoom_name = re.sub('[^\w]', ' ', zoom_name)
+        real_set = set(real_name.lower().split())
+        zoom_set = set(zoom_name.lower().split())
+
+        if len(real_set.intersection(zoom_set)) > 0:
+            intersect[zoom_name] = len(real_set.intersection(zoom_set))
+        
+    if intersect != {}:
+        return max(intersect, key=intersect.get)
+    else:
+        return 'Missing'
+    
+
 def process_attendance_notes(attendance, student_data, participant_notes_df, class_name):
+    '''
+    Calculates each participant's attendance count
+
+    Args:
+        attendance (DataFrame): Cleaned attendance dataframe from process_attendance_files
+        student_data (DataFrame): Extracted sheet dataframe from get_students_spreadsheet
+        participant_notes_df (DataFrame): Name and activity note of each participant from process_chat_notes
+        class_name (str): Class Name
+
+    Returns:
+        participant_df (DataFrame): Dataframe containing participants name and attendance note 
+    '''
     participant_list = []
 
     for nama_student in student_data['Name']:
@@ -249,7 +310,14 @@ def process_attendance_notes(attendance, student_data, participant_notes_df, cla
     return participant_df
 
 def update_attendance_recap(participant_df, class_name, sheet_name):
+    '''
+    Automatically updates the attendance notes to [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc) spreadsheet.
 
+    Args:
+        participant_df (DataFrame): Participants name and attendance note from process_attendance_notes
+        class_name (str): Class Name
+        sheet_name (str): Sheet name in the spreadsheet 
+    '''
     gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
                                                   authorized_user_info = st.secrets['authorized_user'])
 
