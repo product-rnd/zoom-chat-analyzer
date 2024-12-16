@@ -3,9 +3,7 @@ from datetime import datetime
 import re
 import streamlit as st
 
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google.oauth2.credentials import Credentials
+import gspread
 
 class SessionState:
     def __init__(self, **kwargs):
@@ -13,31 +11,13 @@ class SessionState:
 
 @st.cache_data
 def get_students_spreadsheet(sheet_name):
-    SCOPES = ['https://www.googleapis.com/auth/classroom.courses.readonly', # View your Google Classroom classes.
-              'https://www.googleapis.com/auth/classroom.rosters', # Manage your Google Classroom class rosters.
-              'https://www.googleapis.com/auth/classroom.profile.emails', # View the email addresses of people in your classes.
-              'https://www.googleapis.com/auth/classroom.topics', #See, create, and edit topics in Google Classroom.
-              'https://www.googleapis.com/auth/classroom.coursework.students', # Manage coursework and grades for students
-              'https://www.googleapis.com/auth/classroom.courseworkmaterials', # See, edit, and create classwork materials in Google Classroom.
-              'https://www.googleapis.com/auth/spreadsheets'] # See all your Google Sheets spreadsheets.
+    gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
+                                                  authorized_user_info = st.secrets['authorized_user'])
 
-    creds = Credentials.from_authorized_user_info({"token": st.secrets['token'], 
-                                                   "refresh_token": st.secrets['refresh_token'], 
-                                                   "token_uri": "https://oauth2.googleapis.com/token", 
-                                                   "client_id": st.secrets['client_id'], 
-                                                   "client_secret": st.secrets['client_secret'], 
-                                                   "scopes": ["https://www.googleapis.com/auth/classroom.courses.readonly", "https://www.googleapis.com/auth/classroom.rosters", "https://www.googleapis.com/auth/classroom.profile.emails", "https://www.googleapis.com/auth/classroom.topics", "https://www.googleapis.com/auth/classroom.coursework.students", "https://www.googleapis.com/auth/classroom.courseworkmaterials", "https://www.googleapis.com/auth/spreadsheets"], 
-                                                   "expiry": "2024-02-05T10:21:31.547832Z"}, SCOPES)
-    
-    SHEET_ID = "1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc" # Schedule Workshop
-    SHEET_RANGE = f"{sheet_name}!A:L"
+    spreadsheet = gc.open("Schedule Workshop")
+    sheet = spreadsheet.worksheet(sheet_name)
 
-    service = build('sheets', 'v4', credentials=creds)
-    sheet = service.spreadsheets().values().batchGet(spreadsheetId=SHEET_ID,
-                                                     ranges=SHEET_RANGE).execute()
-    values = sheet.get('valueRanges', [])
-
-    active = pd.DataFrame(values[0].get('values'))
+    active = pd.DataFrame(sheet.get_all_values())
     active = active.dropna(how="all").rename(columns=active.iloc[0]).drop(index=0)
     
     return active
@@ -232,7 +212,7 @@ def process_chat_notes(participant_data_raw, meeting_dates):
 
     return participant_notes_df, mean_chat_count_day, mean_reaction_count_day
 
-def process_attendance_notes(attendance, student_data, participant_notes_df):
+def process_attendance_notes(attendance, student_data, participant_notes_df, class_name):
     participant_list = []
 
     for nama_student in student_data['Name']:
@@ -261,9 +241,25 @@ def process_attendance_notes(attendance, student_data, participant_notes_df):
 
         participant_list.append({
             'Name':nama_student,
-            'Notes':f"Kehadiran:\n{overall_kehadiran}\n\n{overall_chat}"
+            class_name:f"Kehadiran:\n{overall_kehadiran}\n\n{overall_chat}"
         })
 
     participant_df = pd.DataFrame(participant_list)
 
     return participant_df
+
+def update_attendance_recap(participant_df, class_name, sheet_name):
+
+    gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
+                                                  authorized_user_info = st.secrets['authorized_user'])
+
+    spreadsheet = gc.open("Schedule Workshop")
+    sheet = spreadsheet.worksheet(sheet_name)
+
+    active = pd.DataFrame(sheet.get_all_values())
+    active = active.dropna(how="all").rename(columns=active.iloc[0]).drop(index=0).reset_index().drop(columns='index')
+
+    active[class_name] = participant_df[class_name]
+
+    sheet.update([active.columns.values.tolist()] + active.values.tolist())
+

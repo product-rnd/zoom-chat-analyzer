@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import io
 import datetime
 
-from preprocessing import SessionState, process_uploaded_files, get_students_spreadsheet, process_attendance_files, process_chat_notes, process_attendance_notes
+from preprocessing import SessionState, process_uploaded_files, get_students_spreadsheet, process_attendance_files, process_chat_notes, process_attendance_notes, update_attendance_recap
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     """)
 
     # Replace with current batch name, in accordance to Schedule Workshop sheet name
-    current_batch = "Apollo DA Student" 
+    current_batch = "Apollo" 
 
     # Initialize session state
     state = SessionState(page="Summary", participant_data=None)
@@ -146,40 +146,69 @@ def main():
             participant_data_raw, combine, meeting_dates = process_uploaded_files(uploaded_files=uploaded_files)
             
             # Get student's name from Schedule Workshop
-            sheet_name = st.text_input("Input Students Sheet Name in [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc)", value=current_batch)
-            student_data = get_students_spreadsheet(sheet_name)
+            batch_name = st.text_input("Input Batch Name", value=current_batch)
+            batch_name = batch_name.title()
 
-            # Create Chat notes based on Zoom recording 
-            participant_notes_df, mean_chat_count_day, mean_reaction_count_day = process_chat_notes(participant_data_raw, meeting_dates)
+            col1, col2 = st.columns(2)
 
-            # Preprocess attendance files
-            attendance = process_attendance_files(attendance_files)
+            with col1:
+                specialization = st.selectbox("Select Specialization", ['Data Analytics', 'Data Visualization', 'Machine Learning'])
+            
+            with col2:
+                if specialization == 'Data Visualization':
+                    is_DA = ' '
+                    class_name = st.selectbox("Select Class", ['P4DS', 'DV', 'IP'], index=None)
+                elif specialization == 'Machine Learning':
+                    is_DA = ' '
+                    class_name = st.selectbox("Select Class", ['RM', 'C1', 'C2', 'UL', 'TS', 'NN'], index=None)
+                elif specialization == 'Data Analytics':
+                    is_DA = ' DA '
+                    class_name = st.selectbox("Select Class", ['P4DA', 'EDA', 'DWV', 'SQL', 'IML1', 'IML2'], index=None)
 
-            # Create Attendance note based on Zoom attendance report 
-            participant_df = process_attendance_notes(attendance, student_data, participant_notes_df)
+            
+            if class_name != None:
+                sheet_name = batch_name + is_DA + 'Student'
+                sheet_name = st.text_input("Input Students Sheet Name in [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc)", value=sheet_name)
 
-            # Display participant notes in a table format
-            st.subheader("Participant Notes")
-            st.dataframe(participant_df, use_container_width = True)
+                student_data = get_students_spreadsheet(sheet_name)
 
-            # Iterate over unique dates
-            st.write("📝 Note:")
-            for key, value in meeting_dates.items():
-                st.write(f"&nbsp;&nbsp;&nbsp;&nbsp; - {key}: {value}")
+                # Create Chat notes based on Zoom recording 
+                participant_notes_df, mean_chat_count_day, mean_reaction_count_day = process_chat_notes(participant_data_raw, meeting_dates)
 
-            # Display participant notes in a table format
-            st.subheader("Detail Rules Each Day")
-            st.write("Students are considered active/responsive only if their chat_count is more than the mean message count in each meeting, and their reaction_count is more than the mean reaction count as well.")
-            st.markdown("- Mean Message Count: " + str(mean_chat_count_day))
-            st.markdown("- Mean Reaction Count: " + str(mean_reaction_count_day))
+                # Preprocess attendance files
+                attendance = process_attendance_files(attendance_files)
+
+                # Create Attendance note based on Zoom attendance report 
+                participant_df = process_attendance_notes(attendance, student_data, participant_notes_df, class_name)
+
+                # Display participant notes in a table format
+                st.subheader("Participant Notes")
+                st.dataframe(participant_df, use_container_width = True)
+
+                _, col, _ = st.columns(3)
+                with col:
+                    update_button = st.button('Update Attendance Recap')
+
+                if update_button:
+                    update_attendance_recap(participant_df, class_name, sheet_name)
+
+                    st.balloons()
+                    st.success(f'{sheet_name} {class_name} was successfully updated!', icon="✅")
+
+                # Iterate over unique dates
+                st.write("📝 Note:")
+                for key, value in meeting_dates.items():
+                    st.write(f"&nbsp;&nbsp;&nbsp;&nbsp; - {key}: {value}")
+
+                # Display participant notes in a table format
+                st.subheader("Detail Rules Each Day")
+                st.write("Students are considered active/responsive only if their chat_count is more than the mean message count in each meeting, and their reaction_count is more than the mean reaction count as well.")
+                st.markdown("- Mean Message Count: " + str(mean_chat_count_day))
+                st.markdown("- Mean Reaction Count: " + str(mean_reaction_count_day))
 
         elif uploaded_files:
             # Initialize an empty list to store participant data
             participant_data_raw, combine, meeting_dates = process_uploaded_files(uploaded_files=uploaded_files)
-            
-            # Get student's name from Schedule Workshop
-            sheet_name = st.text_input("Input Students Sheet Name in [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc)", value=current_batch)
-            student_data = get_students_spreadsheet(sheet_name)
 
             # Create Chat notes based on Zoom recording 
             participant_notes_df, mean_chat_count_day, mean_reaction_count_day = process_chat_notes(participant_data_raw, meeting_dates)
