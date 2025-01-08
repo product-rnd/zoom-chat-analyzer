@@ -2,4 +2,5 @@ participants/
 __pycache__/
 .streamlit/
 *.ipynb
-zoom_chat_credentials.json
+authorized_product.json
+credentials_product.json
