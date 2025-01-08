@@ -309,7 +309,7 @@ def process_attendance_notes(attendance, student_data, participant_notes_df, cla
 
     return participant_df
 
-def update_attendance_recap(participant_df, class_name, sheet_name):
+def update_participants_notes(participant_df, class_name, sheet_name):
     '''
     Automatically updates the attendance notes to [Schedule Workshop](https://docs.google.com/spreadsheets/d/1APwoLJ4lGGNnYhOfQ9AVF14f-aSmNDmAeA0PtMYwMIc) spreadsheet.
 
@@ -331,3 +331,76 @@ def update_attendance_recap(participant_df, class_name, sheet_name):
 
     sheet.update([active.columns.values.tolist()] + active.values.tolist())
 
+def update_attendance_recap(attendance_files, current_batch, class_name, days):
+    '''
+    Automatically updates the attendance notes to [Absensi Academy](https://drive.google.com/drive/folders/1ikv3oRRw5w1GP2bNC99qVHqiOdpUSh-f?usp=drive_link).
+
+    Args:
+        attendance_files (List of BytesIO files): Uploaded zoom attendance files
+        current_batch (str): Current Batch Name
+        class_name (str): Class Name
+        days (list of str): List of days to recap (`['Day 1', 'Day 2', 'Day 3', 'Day 4']`)
+    '''
+    # Integrate to Google Sheets
+    gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
+                                                  authorized_user_info = st.secrets['authorized_user'])
+
+    spreadsheet = gc.open(f"Rekap Kehadiran {current_batch} - Zoom Participants")
+
+    # Preprocess Attendance Files
+    attendance_list = []
+
+    for attendance_csv in attendance_files:
+        attendance_list.append(pd.read_csv(attendance_csv))
+
+    attendance = pd.concat(attendance_list)
+    attendance['Join time'] = pd.to_datetime(attendance['Join time'], format='%m/%d/%Y %I:%M:%S %p')
+    attendance['Leave time'] = pd.to_datetime(attendance['Leave time'], format='%m/%d/%Y %I:%M:%S %p')
+    attendance = attendance.sort_values(by=['Join time', 'Name (original name)'], ascending=True)
+    attendance['Join Date'] = attendance['Join time'].dt.date
+    attendance = attendance.groupby(['Join Date', 'Name (original name)']).agg({
+        'Email':'first',
+        'Join time':'min',
+        'Leave time':'max',
+        'Duration (minutes)':'sum'
+    })
+    attendance = attendance.drop(columns='Email').reset_index(level='Name (original name)')
+    attendance = attendance[~attendance['Name (original name)'].str.contains('\]')]
+    attendance.loc[attendance['Join time'].dt.hour >= 16, 'Class'] = 'Night'
+    attendance.loc[attendance['Join time'].dt.hour < 16, 'Class'] = 'Day'
+    attendance = attendance.rename(columns={
+        'Name (original name)' : 'Name',
+        'Join time' : 'Join Time',
+        'Leave time' : 'Leave Time',	
+        'Duration (minutes)' : 'Duration'
+    })
+
+    attendance = attendance[['Class', 'Name', 'Join Time', 'Leave Time', 'Duration']]
+
+    for day, date in zip(days, attendance.index.unique()):
+        # Filter Days
+        attendance_i = attendance[attendance.index == date]
+
+        # Create Worksheet 
+        try:
+            sheet = spreadsheet.add_worksheet(title=f"{class_name} {day}", 
+                                              rows=attendance_i.shape[0]+1, 
+                                              cols=attendance_i.shape[1])
+        except:
+            # Select the already existing worksheet
+            try:
+                sheet = spreadsheet.worksheet(f"{class_name} {day}") 
+            except:
+                st.error(f"❌  {class_name} {day} sheet is not available")
+                continue
+
+        # Update Values
+        attendance_i[['Join Time', 'Leave Time']] = attendance_i[['Join Time', 'Leave Time']].astype('string')
+        sheet.update([attendance_i.columns.values.tolist()] + attendance_i.values.tolist())
+
+        # Cell Formatting
+        sheet.freeze(rows=1)
+        sheet.format(ranges='A1:E1', 
+                     format={'textFormat': {'bold': True},
+                             'backgroundColor': {"red": 21, "green": 21, "blue": 21},
+                             'horizontalAlignment' : "CENTER"})

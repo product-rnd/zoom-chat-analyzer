@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import io
 import datetime
 
-from preprocessing import SessionState, process_uploaded_files, get_students_spreadsheet, process_attendance_files, process_chat_notes, process_attendance_notes, update_attendance_recap
+from preprocessing import SessionState, process_uploaded_files, get_students_spreadsheet, process_attendance_files, process_chat_notes, process_attendance_notes, update_participants_notes, update_attendance_recap
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
     state = SessionState(page="Summary", participant_data=None)
 
     # Page selection
-    page = st.sidebar.radio("📍 Select Page", ["Summary", "Individual Analytics"], index=["Summary", "Individual Analytics"].index(state.page))
+    page = st.sidebar.radio("📍 Select Page", ["Summary", "Individual Analytics", "Attendance Recap (🆕)"], index=["Summary", "Individual Analytics", "Attendance Recap (🆕)"].index(state.page))
 
     if page == "Summary":
         state.page = "Summary"
@@ -33,7 +33,7 @@ def main():
         uploaded_files = st.sidebar.file_uploader("Download meeting chat files here: [Zoom Recording](https://zoom.us/recording)", type=['txt'], accept_multiple_files=True)
 
         # Upload Attendance
-        st.sidebar.header("💻 Upload Attendance (🆕)")
+        st.sidebar.header("💻 Upload Attendance")
 
         end_time = datetime.datetime.today()
         start_time = end_time - datetime.timedelta(days=5)
@@ -125,7 +125,7 @@ def main():
         uploaded_files = st.sidebar.file_uploader("Download meeting chat files here: [Zoom Recording](https://zoom.us/recording)", type=['txt'], accept_multiple_files=True)
 
         # Upload Attendance
-        st.sidebar.header("💻 Upload Attendance (🆕)")
+        st.sidebar.header("💻 Upload Attendance")
 
         end_time = datetime.datetime.today()
         start_time = end_time - datetime.timedelta(days=5)
@@ -187,10 +187,10 @@ def main():
 
                 _, col, _ = st.columns(3)
                 with col:
-                    update_button = st.button('Update Attendance Recap')
+                    update_button = st.button('Update Participant Notes')
 
                 if update_button:
-                    update_attendance_recap(participant_df, class_name, sheet_name)
+                    update_participants_notes(participant_df, class_name, sheet_name)
 
                     st.balloons()
                     st.success(f'{sheet_name} {class_name} was successfully updated!', icon="✅")
@@ -227,6 +227,69 @@ def main():
             st.markdown("- Mean Message Count: " + str(mean_chat_count_day))
             st.markdown("- Mean Reaction Count: " + str(mean_reaction_count_day))
         
+    elif page == "Attendance Recap (🆕)":
+        state.page = "Attendance Recap (🆕)"
+
+        st.markdown("---")
+        st.header("📋 Attendance Recap Page")
+        # Upload files
+        st.sidebar.header("🗃️ Upload Chat Files")
+        uploaded_files = st.sidebar.file_uploader("Download meeting chat files here: [Zoom Recording](https://zoom.us/recording)", type=['txt'], accept_multiple_files=True)
+
+        # Upload Attendance
+        st.sidebar.header("💻 Upload Attendance")
+
+        end_time = datetime.datetime.today()
+        start_time = end_time - datetime.timedelta(days=5)
+
+        attendance_files = st.sidebar.file_uploader(f"Download attendance files here: [Zoom Attendance Report](https://zoom.us/account/my/report?from={start_time.strftime('%m/%d/%Y')}&to={end_time.strftime('%m/%d/%Y')}#/)", type=['csv'], accept_multiple_files=True)
+
+        st.sidebar.markdown("""
+                            📝**Note**: 
+
+                            - You can upload multiple files (e.g., Zoom Chat from Day 1 to Day 4)
+                            - Make sure your Zoom chat filenames is the original name from the downloaded recording. **Do not rename it**. It must contain `GMTYYYYMMDD` at least.
+                            - Even though attendance filenames is the same for each day, you don't have to rename it 
+                            """)
+        
+        if attendance_files:
+
+            # Get student's name from Schedule Workshop
+            batch_name = st.text_input("Input Batch Name", value=current_batch)
+            batch_name = batch_name.title()
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                specialization = st.selectbox("Select Specialization", ['Data Analytics', 'Data Visualization', 'Machine Learning'])
+            
+            with col2:
+                if specialization == 'Data Visualization':
+                    is_DA = ' '
+                    class_name = st.selectbox("Select Class", ['P4DS', 'DV', 'IP'], index=None)
+                elif specialization == 'Machine Learning':
+                    is_DA = ' '
+                    class_name = st.selectbox("Select Class", ['RM', 'C1', 'C2', 'UL', 'TS', 'NN'], index=None)
+                elif specialization == 'Data Analytics':
+                    is_DA = ' DA '
+                    class_name = st.selectbox("Select Class", ['P4DA', 'EDA', 'DWV', 'SQL', 'IML1', 'IML2'], index=None)   
+
+            days = st.multiselect("Select Days of Recap", ["Day 1", "Day 2", "Day 3", "Day 4"], default=["Day 1", "Day 2", "Day 3", "Day 4"])
+
+            if len(days) == len(attendance_files):
+                _, col, _ = st.columns(3)
+                with col:
+                    update_button = st.button('Update Attendance Recap')
+
+                if update_button:
+                    update_attendance_recap(attendance_files, current_batch, class_name, days)
+
+                    st.balloons()
+                    st.success(f'{class_name} {", ".join(days)} was successfully updated!', icon="✅")
+            else:
+                st.error("🚨  The number of days does not match the number of attendance files")
+        else:
+            st.info(f"ℹ️  Please upload the [Attendance Files](https://zoom.us/account/my/report?from={start_time.strftime('%m/%d/%Y')}&to={end_time.strftime('%m/%d/%Y')}#/) in the sidebar")
 
     # Footer
     st.markdown("""
