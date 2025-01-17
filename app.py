@@ -266,13 +266,13 @@ def main():
             with col2:
                 if specialization == 'Data Visualization':
                     is_DA = ' '
-                    class_name = st.selectbox("Select Class", ['P4DS', 'DV', 'IP'], index=None)
+                    class_name = st.selectbox("Select Class", ['P4DS', 'DV', 'IP', 'Capstone DV'], index=None)
                 elif specialization == 'Machine Learning':
                     is_DA = ' '
-                    class_name = st.selectbox("Select Class", ['RM', 'C1', 'C2', 'UL', 'TS', 'NN'], index=None)
+                    class_name = st.selectbox("Select Class", ['RM', 'C1', 'C2', 'UL', 'TS', 'NN', 'Capstone ML'], index=None)
                 elif specialization == 'Data Analytics':
                     is_DA = ' DA '
-                    class_name = st.selectbox("Select Class", ['P4DA', 'EDA', 'DWV', 'SQL', 'IML1', 'IML2'], index=None)   
+                    class_name = st.selectbox("Select Class", ['P4DA', 'EDA', 'DWV', 'SQL', 'Capstone DA', 'IML1', 'IML2'], index=None)   
 
             days = st.multiselect("Select Days of Recap", ["Day 1", "Day 2", "Day 3", "Day 4"], default=["Day 1", "Day 2", "Day 3", "Day 4"])
 
