@@ -14,8 +14,20 @@ def main():
     """)
 
     # Replace with current batch name, in accordance to Schedule Workshop sheet name
-    current_batch = "Apollo" 
+    current_batch = "Apollo"
 
+    # Set sidebar width
+    st.markdown(
+        """
+        <style>
+            section[data-testid="stSidebar"] {
+                width: 500px !important; # Set the width to your desired value
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     # Initialize session state
     state = SessionState(page="Summary", participant_data=None)
 
@@ -282,7 +294,7 @@ def main():
                     update_button = st.button('Update Attendance Recap')
 
                 if update_button:
-                    update_attendance_recap(attendance_files, current_batch, class_name, days)
+                    update_attendance_recap(attendance_files, batch_name, class_name, days)
 
                     st.balloons()
                     st.success(f'{class_name} {", ".join(days)} was successfully updated!', icon="✅")

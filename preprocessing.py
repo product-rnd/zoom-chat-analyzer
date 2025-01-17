@@ -331,13 +331,13 @@ def update_participants_notes(participant_df, class_name, sheet_name):
 
     sheet.update([active.columns.values.tolist()] + active.values.tolist())
 
-def update_attendance_recap(attendance_files, current_batch, class_name, days):
+def update_attendance_recap(attendance_files, batch_name, class_name, days):
     '''
     Automatically updates the attendance notes to [Absensi Academy](https://drive.google.com/drive/folders/1ikv3oRRw5w1GP2bNC99qVHqiOdpUSh-f?usp=drive_link).
 
     Args:
         attendance_files (List of BytesIO files): Uploaded zoom attendance files
-        current_batch (str): Current Batch Name
+        batch_name (str): Current Batch Name
         class_name (str): Class Name
         days (list of str): List of days to recap (`['Day 1', 'Day 2', 'Day 3', 'Day 4']`)
     '''
@@ -345,7 +345,7 @@ def update_attendance_recap(attendance_files, current_batch, class_name, days):
     gc, authorized_user = gspread.oauth_from_dict(credentials = st.secrets['credentials'], 
                                                   authorized_user_info = st.secrets['authorized_user'])
 
-    spreadsheet = gc.open(f"Rekap Kehadiran {current_batch} - Zoom Participants")
+    spreadsheet = gc.open(f"Rekap Kehadiran {batch_name} - Zoom Participants")
 
     # Preprocess Attendance Files
     attendance_list = []
@@ -379,7 +379,7 @@ def update_attendance_recap(attendance_files, current_batch, class_name, days):
 
     for day, date in zip(days, attendance.index.unique()):
         # Filter Days
-        attendance_i = attendance[attendance.index == date]
+        attendance_i = attendance[attendance.index == date].copy()
 
         # Create Worksheet 
         try:
