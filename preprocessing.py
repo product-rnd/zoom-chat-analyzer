@@ -151,7 +151,7 @@ def process_attendance_files(attendance_files):
     attendance['Join time'] = pd.to_datetime(attendance['Join time'], format='%m/%d/%Y %I:%M:%S %p')
     attendance['Leave time'] = pd.to_datetime(attendance['Leave time'], format='%m/%d/%Y %I:%M:%S %p')
     attendance = attendance.sort_values(by='Join time', ascending=True)
-    attendance_agg = attendance.groupby([attendance['Join time'].dt.day_name(), 'Name (original name)'], sort=False).agg({
+    attendance_agg = attendance.groupby([attendance['Join time'].dt.date, 'Name (original name)'], sort=False).agg({
         'Email':'first',
         'Join time':'first',
         'Leave time':'last',
