@@ -9,12 +9,6 @@ from preprocessing import SessionState, process_uploaded_files, get_students_spr
 
 def main():
     st.title("💭 Zoom Chat Analyzer - Algoritma")
-    st.write("""
-    📊 This app analyzes chat data and provides insights into the most active and silent participants.
-    """)
-
-    # Replace with current batch name, in accordance to Schedule Workshop sheet name
-    current_batch = "Apollo"
 
     # Set sidebar width
     st.markdown(
@@ -266,27 +260,12 @@ def main():
         
         if attendance_files:
 
-            # Get student's name from Schedule Workshop
-            batch_name = st.text_input("Input Batch Name", value=current_batch)
-            batch_name = batch_name.title()
+            sheets_url = st.text_input("Input Sheets URL", value=r"https://docs.google.com/spreadsheets/d/1_Nk1A_YkL7TnY3Ul7Kyp25Igw8dbUsGUxUwPeLMu6o0/edit?usp=sharing")
+            class_name = st.text_input("Input Class Name")
 
             col1, col2 = st.columns(2)
 
-            with col1:
-                specialization = st.selectbox("Select Specialization", ['Data Analytics', 'Data Visualization', 'Machine Learning'])
-            
-            with col2:
-                if specialization == 'Data Visualization':
-                    is_DA = ' '
-                    class_name = st.selectbox("Select Class", ['P4DS', 'PS', 'DV', 'IP', 'Capstone DV'], index=None)
-                elif specialization == 'Machine Learning':
-                    is_DA = ' '
-                    class_name = st.selectbox("Select Class", ['RM', 'C1', 'C2', 'UL', 'TS', 'NN', 'Capstone ML'], index=None)
-                elif specialization == 'Data Analytics':
-                    is_DA = ' DA '
-                    class_name = st.selectbox("Select Class", ['P4DA', 'EDA', 'DWV', 'SQL', 'Capstone DA', 'IML1', 'IML2'], index=None) 
-
-            days = st.multiselect("Select Days of Recap", ["Day 1", "Day 2", "Day 3", "Day 4"], default=["Day 1", "Day 2", "Day 3", "Day 4"])
+            days = st.multiselect("Select Days of Recap", [f"Day {i+1}" for i in range(10)], default=[f"Day {i+1}" for i in range(len(attendance_files))])
 
             if len(days) == len(attendance_files):
                 _, col, _ = st.columns(3)
@@ -294,7 +273,10 @@ def main():
                     update_button = st.button('Update Attendance Recap')
 
                 if update_button:
-                    update_attendance_recap(attendance_files, batch_name, class_name, days)
+                    update_attendance_recap(attendance_files=attendance_files, 
+                                            sheets_url=sheets_url, 
+                                            class_name=class_name, 
+                                            days=days)
 
                     st.balloons()
                     st.success(f'{class_name} {", ".join(days)} was successfully updated!', icon="✅")
